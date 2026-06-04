@@ -17,11 +17,16 @@ currently the program only indicates what if any games are not compatible with L
 future commits will allow filtering for specific compatibility levels (e.g. Platinum)
 
 
+<<<<<<< HEAD
 <br>
 <br>
 <br>
 options are (in order of most to least compatible):
 - `"compatible"` (Returns all the compatible games without indicating tier)
+=======
+options are (in order of most to least compatible):
+- `"compatible"` (Returns all the compatible games; what tier they are is not specified with this mode)
+>>>>>>> d70ce91 (corrected some README formatting issues)
 - `"platinum"`
 - `"gold"`
 - `"silver"`
