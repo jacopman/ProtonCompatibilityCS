@@ -9,10 +9,15 @@ public class Program
     // ___ CONFIGURATION ___
     private static readonly string? SteamApiKey = Environment.GetEnvironmentVariable("SteamApiKey");
     private static readonly string? SteamId = Environment.GetEnvironmentVariable("SteamId");
-    private static readonly ISteamService _steamService = new SteamService(new HttpClient());
+    private static readonly SteamService _steamService = new(new HttpClient());
+
+
 
     static async Task Main(string[] args)
     {
+
+        DotEnv.Load(options: new DotEnvOptions(probeForEnv: true));
+
         if (string.IsNullOrEmpty(SteamApiKey) || string.IsNullOrEmpty(SteamId))
         {
             Console.WriteLine("Error: Missing Steam API key or Steam ID. Please set the environment variables 'SteamApiKey' and 'SteamId'.");
@@ -20,7 +25,6 @@ public class Program
         }
         else
         {
-            DotEnv.Load(options: new DotEnvOptions(probeForEnv: true));
             Console.Clear();
 
             Console.WriteLine("Fetching your Steam library...");
