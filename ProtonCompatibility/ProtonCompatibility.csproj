@@ -17,4 +17,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="testingAsync.Tests" />
+  </ItemGroup>
+  
 </Project>
