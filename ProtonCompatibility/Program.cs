@@ -1,39 +1,46 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
-using dotenv.net;
+﻿using dotenv.net;
+using JsonResponseModels;
+using APIServices;
 
 namespace ProtonCompatibility;
 
 public class Program
 {
     // ___ CONFIGURATION ___
-    private static readonly string SteamApiKey = Environment.GetEnvironmentVariable("SteamApiKey");
-    private static readonly string SteamId = Environment.GetEnvironmentVariable("SteamId");
+    private static readonly string? SteamApiKey = Environment.GetEnvironmentVariable("SteamApiKey");
+    private static readonly string? SteamId = Environment.GetEnvironmentVariable("SteamId");
     private static readonly ISteamService _steamService = new SteamService(new HttpClient());
 
     static async Task Main(string[] args)
     {
-        DotEnv.Load(options: new DotEnvOptions(probeForEnv: true));
-        Console.Clear();
-
-        Console.WriteLine("Fetching your Steam library...");
-        var library = await _steamService.GetSteamLibraryAsync(SteamApiKey, SteamId);
-        if (library == null || library.Count == 0)
+        if (string.IsNullOrEmpty(SteamApiKey) || string.IsNullOrEmpty(SteamId))
         {
-            Console.WriteLine("No games found. Check your Steam privacy settings (Game Details must be Public).");
+            Console.WriteLine("Error: Missing Steam API key or Steam ID. Please set the environment variables 'SteamApiKey' and 'SteamId'.");
             return;
         }
-        Console.WriteLine($"Found {library.Count} games. please select a compatibility tier to filter by...");
-        // selecting a tier to filter games by
-        string selected = FilterSelection();
+        else
+        {
+            DotEnv.Load(options: new DotEnvOptions(probeForEnv: true));
+            Console.Clear();
+
+            Console.WriteLine("Fetching your Steam library...");
+            var library = await _steamService.GetSteamLibraryAsync(SteamApiKey, SteamId);
+            if (library == null || library.Count == 0)
+            {
+                Console.WriteLine("No games found. Check your Steam privacy settings (Game Details must be Public).");
+                return;
+            }
+            Console.WriteLine($"Found {library.Count} games. please select a compatibility tier to filter by...");
+            // selecting a tier to filter games by
+            string selected = FilterSelection();
 
 
-        // --- FILTER GAMES BY SELECTED TIER ---
-        List<(string Name, int AppId)> filteredGamesList = await FilterGamesByTier(_steamService, library, selected);
-        Console.WriteLine($"Filtering games by {selected.ToUpper()} tier... Found {filteredGamesList.Count} matching games.\n");
-        // --- RESULTS ---
-        DisplayCompatibility(filteredGamesList, selected);
-
+            // --- FILTER GAMES BY SELECTED TIER ---
+            List<(string Name, int AppId)> filteredGamesList = await FilterGamesByTier(_steamService, library, selected);
+            Console.WriteLine($"Filtering games by {selected.ToUpper()} tier... Found {filteredGamesList.Count} matching games.\n");
+            // --- RESULTS ---
+            DisplayCompatibility(filteredGamesList, selected);
+        }
     }
     /// <summary>
     /// Displays a console menu for selecting a compatibility tier and returns the selected tier as a string.
@@ -146,106 +153,4 @@ public class Program
         }
         return filteredGames;
     }
-
-}
-/// <summary>
-/// The SteamService class implements the ISteamService interface and provides methods for fetching a user's Steam library and checking the compatibility of games with Proton by making HTTP requests to the Steam Web API and the ProtonDB API, respectively. The GetSteamLibraryAsync method retrieves the user's Steam library and returns a list of SteamGame objects, while the CheckProtonCompatibilityAsync method checks the compatibility of a game with Proton and returns its compatibility tier as a string. Both methods handle errors gracefully by returning default values and printing error messages to the console when necessary.
-/// </summary>
-public class SteamService : ISteamService
-{
-    private readonly HttpClient _client;
-    public SteamService(HttpClient client)
-    {
-        _client = client;
-    }
-    /// <summary>
-    /// Fetches the user's Steam library using the Steam Web API by sending an HTTP GET request to the GetOwnedGames endpoint with the provided API key and Steam ID. The method deserializes the JSON response into a list of SteamGame objects, which contain the AppID and name of each game in the user's library. If an error occurs during the API call, the method returns null and prints an error message to the console.
-    /// </summary>
-    /// <param name="apiKey">The Steam Web API key.</param>
-    /// <param name="steamId">The Steam ID of the user.</param>
-    /// <returns>A list of SteamGame objects representing the user's library, or null if an error occurs.</returns>
-    /// <summary>
-    /// Checks the compatibility of a game with Proton by sending an HTTP GET request to the ProtonDB API with the game's AppID. The method deserializes the JSON response to extract the compatibility tier of the game and returns it as a string. If the game is not found in the ProtonDB database, the method returns "native/unknown". If an error occurs during the API call, the method returns "error".
-    /// </summary>
-    /// <param name="appId">The AppID of the game to check.</param>
-    /// <param name="tier">The compatibility tier to filter by.</param>
-    /// <returns>The compatibility tier of the game, or a default value if an error occurs.</returns>
-    public async Task<List<SteamGame>> GetSteamLibraryAsync(string apiKey, string steamId)
-    {
-        string url = $"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={apiKey}&steamid={steamId}&include_appinfo=true&include_played_free_games=true&format=json";
-
-        try
-        {
-            var response = await _client.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-            string jsonString = await response.Content.ReadAsStringAsync();
-            var steamData = JsonSerializer.Deserialize<SteamApiResponse>(jsonString);
-            return steamData?.Response?.Games ?? new List<SteamGame>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching Steam library: {ex.Message}");
-            return null;
-        }
-    }
-
-    public async Task<string> CheckProtonCompatibilityAsync(int appId)
-    {
-        // ProtonDB template url
-        string url = $"https://www.protondb.com/api/v1/reports/summaries/{appId}.json";
-
-        try
-        {
-            // get request to protondb api
-            var response = await _client.GetAsync(url);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return "native/unknown";
-            }
-            // if it works, pull the tier and return it as a string
-            response.EnsureSuccessStatusCode();
-            string jsonString = await response.Content.ReadAsStringAsync();
-            var protonData = JsonSerializer.Deserialize<ProtonDbResponse>(jsonString);
-            return protonData?.Tier.ToLower() ?? "unknown";
-        }
-        catch
-        {
-            return "error";
-        }
-    }
-}
-
-// steam api response models
-internal class SteamApiResponse
-{
-    [JsonPropertyName("response")]
-    public required SteamResponseData Response { get; set; }
-}
-internal class SteamResponseData
-{
-    [JsonPropertyName("game_count")]
-    public int GameCount { get; set; }
-
-    [JsonPropertyName("games")]
-    public required List<SteamGame> Games { get; set; }
-}
-public class SteamGame
-{
-    [JsonPropertyName("appid")]
-    public int AppId { get; set; }
-
-    [JsonPropertyName("name")]
-    public required string Name { get; set; }
-}
-// protondb api response model; all we need is the tier.
-internal class ProtonDbResponse
-{
-    [JsonPropertyName("tier")]
-    public required string Tier { get; set; }
-}
-
-public interface ISteamService
-{
-    Task<List<SteamGame>> GetSteamLibraryAsync(string apiKey, string steamId);
-    Task<string> CheckProtonCompatibilityAsync(int appId);
 }

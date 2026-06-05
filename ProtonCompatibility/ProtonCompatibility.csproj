@@ -20,5 +20,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="testingAsync.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JsonResponseModels\JsonResponseModels.csproj" />
+    <ProjectReference Include="..\APIServices\APIServices.csproj" />
+  </ItemGroup>
   
 </Project>
