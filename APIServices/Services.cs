@@ -3,13 +3,10 @@ using System.Text.Json;
 
 namespace APIServices;
 
-public class SteamService : ISteamService
+public class SteamService(HttpClient client) : ISteamService
 {
-    private readonly HttpClient _client;
-    public SteamService(HttpClient client)
-    {
-        _client = client;
-    }
+    private readonly HttpClient _client = client;
+
     /// <summary>
     /// Fetches the user's Steam library using the Steam Web API by sending an HTTP GET request to the GetOwnedGames endpoint with the provided API key and Steam ID. The method deserializes the JSON response into a list of SteamGame objects, which contain the AppID and name of each game in the user's library. If an error occurs during the API call, the method returns null and prints an error message to the console.
     /// </summary>
@@ -37,7 +34,7 @@ public class SteamService : ISteamService
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching Steam library: {ex.Message}");
-            return null;
+            return new List<SteamGame>();
         }
     }
 

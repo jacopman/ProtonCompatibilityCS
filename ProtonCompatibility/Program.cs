@@ -46,6 +46,7 @@ public class Program
             DisplayCompatibility(filteredGamesList, selected);
         }
     }
+    
     /// <summary>
     /// Displays a console menu for selecting a compatibility tier and returns the selected tier as a string.
     /// </summary>
@@ -99,6 +100,7 @@ public class Program
         }
         return searchType[selectedOption];
     }
+
     /// <summary>
     /// Displays a list of games filtered by the specified compatibility tier, along with their AppIDs and a total count of games found for that tier.
     /// </summary>
@@ -128,6 +130,7 @@ public class Program
         }
 
     }
+
     /// <summary>
     /// Filters a list of Steam games based on their compatibility tier by checking each game's AppID against the ProtonDB API and comparing the returned tier with the specified tier. The method returns a list of tuples containing the name and AppID of each game that matches the specified tier.
     /// </summary>
