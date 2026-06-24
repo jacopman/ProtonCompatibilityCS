@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="APIServices/APIServices.csproj" />
   <Project Path="JsonResponseModels/JsonResponseModels.csproj" />
+  <Project Path="ProtonCompatibility.Utilities/ProtonCompatibility.Utilities.csproj" />
   <Project Path="ProtonCompatibility/ProtonCompatibility.csproj" />
   <Project Path="Testing/Testing.csproj" />
 </Solution>

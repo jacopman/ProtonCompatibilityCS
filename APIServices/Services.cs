@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace APIServices;
 
-public class SteamService(HttpClient client) : ISteamService
+public class ClientService(HttpClient client) : IClientService
 {
     private readonly HttpClient _client = client;
 
@@ -65,7 +65,7 @@ public class SteamService(HttpClient client) : ISteamService
 }
 // steam api response models
 // protondb api response model; all we need is the tier.
-public interface ISteamService
+public interface IClientService
 {
     Task<List<SteamGame>> GetSteamLibraryAsync(string apiKey, string steamId);
     Task<string> CheckProtonCompatibilityAsync(int appId);
