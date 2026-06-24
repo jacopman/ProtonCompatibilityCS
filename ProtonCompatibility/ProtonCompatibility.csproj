@@ -14,9 +14,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="testingAsync.Tests" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\ProtonCompatibility.Utilities\ProtonCompatibility.Utilities.csproj" />
   </ItemGroup>
 </Project>

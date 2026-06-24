@@ -132,7 +132,7 @@ internal static class Func
     /// <param name="filterTier">The compatibility tier to filter by.</param>
     /// <returns>A list of tuples containing the name and AppID of each game that matches the specified tier.</returns>
 
-    internal static async Task<List<(string Name, int AppId)>> FilterGamesByTier(IClientService clientService, List<SteamGame> library, string filterTier)
+    public static async Task<List<(string Name, int AppId)>> FilterGamesByTier(IClientService clientService, List<SteamGame> library, string filterTier)
     {
         List<(string Name, int AppId)> filteredGames = [];
         int count = 0;
@@ -156,7 +156,7 @@ internal static class Func
 
     }
 
-    internal static void ValidateLibrary(List<SteamGame> library)
+    public static void ValidateLibrary(List<SteamGame> library)
     {
         if (library == null || library.Count == 0)
         {
