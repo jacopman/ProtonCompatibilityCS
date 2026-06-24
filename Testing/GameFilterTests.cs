@@ -67,30 +67,32 @@ public class GameFilterTests
         mockService.Setup(s => s.CheckProtonCompatibilityAsync(2)).ReturnsAsync("bronze");
         mockService.Setup(s => s.CheckProtonCompatibilityAsync(3)).ReturnsAsync("gold");
         // When
-        Task<List<(string Name, int AppId)>> resultOne = Func.FilterGamesByTier(mockService.Object, testLibrary, "gold");
-        Task<List<(string Name, int AppId)>> resultTwo = Func.FilterGamesByTier(mockService.Object, testLibrary, "Gold");
-        Task<List<(string Name, int AppId)>> resultThree = Func.FilterGamesByTier(mockService.Object, testLibrary, "GOLD");
-
-        await Task.WhenAll(resultOne, resultTwo, resultThree);
+        Task<List<(string Name, int AppId)>> taskResultOne = Func.FilterGamesByTier(mockService.Object, testLibrary, "gold");
+        Task<List<(string Name, int AppId)>> taskResultTwo = Func.FilterGamesByTier(mockService.Object, testLibrary, "Gold");
+        Task<List<(string Name, int AppId)>> taskResultThree = Func.FilterGamesByTier(mockService.Object, testLibrary, "GOLD");
+        await Task.WhenAll(taskResultOne, taskResultTwo, taskResultThree);
+        var resultOne = taskResultOne.Result;
+        var resultTwo = taskResultTwo.Result;
+        var resultThree = taskResultThree.Result;
         // Then
 
         // Result 1
-        Assert.Equal(2, resultOne.Result.Count);
-        Assert.Contains(resultOne.Result, g => g.Name == "Gold Game");
-        Assert.Contains(resultOne.Result, g => g.Name == "Another Gold Game");
-        Assert.DoesNotContain(resultOne.Result, g => g.Name == "Bronze Game");
+        Assert.Equal(2, resultOne.Count);
+        Assert.Contains(resultOne, g => g.Name == "Gold Game");
+        Assert.Contains(resultOne, g => g.Name == "Another Gold Game");
+        Assert.DoesNotContain(resultOne, g => g.Name == "Bronze Game");
 
         // Result 2
-        Assert.Equal(2, resultTwo.Result.Count);
-        Assert.Contains(resultTwo.Result, g => g.Name == "Gold Game");
-        Assert.Contains(resultTwo.Result, g => g.Name == "Another Gold Game");
-        Assert.DoesNotContain(resultTwo.Result, g => g.Name == "Bronze Game");
+        Assert.Equal(2, resultTwo.Count);
+        Assert.Contains(resultTwo, g => g.Name == "Gold Game");
+        Assert.Contains(resultTwo, g => g.Name == "Another Gold Game");
+        Assert.DoesNotContain(resultTwo, g => g.Name == "Bronze Game");
         
         // Result 3
-        Assert.Equal(2, resultThree.Result.Count);
-        Assert.Contains(resultThree.Result, g => g.Name == "Gold Game");
-        Assert.Contains(resultThree.Result, g => g.Name == "Another Gold Game");
-        Assert.DoesNotContain(resultThree.Result, g => g.Name == "Bronze Game");
+        Assert.Equal(2, resultThree.Count);
+        Assert.Contains(resultThree, g => g.Name == "Gold Game");
+        Assert.Contains(resultThree, g => g.Name == "Another Gold Game");
+        Assert.DoesNotContain(resultThree, g => g.Name == "Bronze Game");
     }
 
     [Fact]
