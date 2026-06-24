@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ProtonCompatibility\ProtonCompatibility.csproj" />
     <ProjectReference Include="..\APIServices\APIServices.csproj" />
     <ProjectReference Include="..\JsonResponseModels\JsonResponseModels.csproj" />
+    <ProjectReference Include="..\ProtonCompatibility.Utilities\ProtonCompatibility.Utilities.csproj" />
   </ItemGroup>
 
 </Project>

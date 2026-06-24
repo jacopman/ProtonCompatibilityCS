@@ -1,7 +1,7 @@
 using Moq;
 using APIServices;
 using JsonResponseModels;
-using ProtonCompatibility;
+using ProtonCompatibility.Utilities;
 
 namespace Testing;
 
@@ -34,7 +34,7 @@ public class GameFilterTests
         mockService.Setup(s => s.CheckProtonCompatibilityAsync(3)).ReturnsAsync("gold");
 
         // 2. Act: Run the filter logic using the mocked service
-        var result = await Program.FilterGamesByTier(mockService.Object, testLibrary, "gold");
+        var result = await Func.FilterGamesByTier(mockService.Object, testLibrary, "gold");
         // 
         // 3. Assert: Verify only Gold games were compiled
         Assert.Equal(2, result.Count);
@@ -50,7 +50,7 @@ public class GameFilterTests
         var testLibrary = _testLibrary;
         testLibrary.RemoveAll(g => true);
         // When
-        var result = await Program.FilterGamesByTier(mockService.Object, testLibrary, "gold");
+        var result = await Func.FilterGamesByTier(mockService.Object, testLibrary, "gold");
 
         // Then
         Assert.Empty(result);
@@ -67,9 +67,9 @@ public class GameFilterTests
         mockService.Setup(s => s.CheckProtonCompatibilityAsync(2)).ReturnsAsync("bronze");
         mockService.Setup(s => s.CheckProtonCompatibilityAsync(3)).ReturnsAsync("gold");
         // When
-        Task<List<(string Name, int AppId)>> resultOne = Program.FilterGamesByTier(mockService.Object, testLibrary, "gold");
-        Task<List<(string Name, int AppId)>> resultTwo = Program.FilterGamesByTier(mockService.Object, testLibrary, "Gold");
-        Task<List<(string Name, int AppId)>> resultThree = Program.FilterGamesByTier(mockService.Object, testLibrary, "GOLD");
+        Task<List<(string Name, int AppId)>> resultOne = Func.FilterGamesByTier(mockService.Object, testLibrary, "gold");
+        Task<List<(string Name, int AppId)>> resultTwo = Func.FilterGamesByTier(mockService.Object, testLibrary, "Gold");
+        Task<List<(string Name, int AppId)>> resultThree = Func.FilterGamesByTier(mockService.Object, testLibrary, "GOLD");
 
         await Task.WhenAll(resultOne, resultTwo, resultThree);
         // Then
@@ -128,7 +128,7 @@ public class GameFilterTests
 
         var exception = await Record.ExceptionAsync(() =>
         {
-            return Program.FilterGamesByTier(mockService.Object, testLibrary, "gold");
+            return Func.FilterGamesByTier(mockService.Object, testLibrary, "gold");
         });
         Assert.Null(exception);
     }
