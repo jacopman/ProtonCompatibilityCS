@@ -3,8 +3,13 @@ using System.Text.Json;
 
 namespace APIServices;
 
+/// <summary>
+///   Represents a service for interacting with the Steam and ProtonDB APIs.
+/// </summary>
+/// <param name="client">an HttpClient object to Get data from various services</param>
 public class ClientService(HttpClient client) : IClientService
 {
+
     private readonly HttpClient _client = client;
 
     /// <summary>
@@ -13,12 +18,6 @@ public class ClientService(HttpClient client) : IClientService
     /// <param name="apiKey">The Steam Web API key.</param>
     /// <param name="steamId">The Steam ID of the user.</param>
     /// <returns>A list of SteamGame objects representing the user's library, or null if an error occurs.</returns>
-    /// <summary>
-    /// Checks the compatibility of a game with Proton by sending an HTTP GET request to the ProtonDB API with the game's AppID. The method deserializes the JSON response to extract the compatibility tier of the game and returns it as a string. If the game is not found in the ProtonDB database, the method returns "native/unknown". If an error occurs during the API call, the method returns "error".
-    /// </summary>
-    /// <param name="appId">The AppID of the game to check.</param>
-    /// <param name="tier">The compatibility tier to filter by.</param>
-    /// <returns>The compatibility tier of the game, or a default value if an error occurs.</returns>
     public async Task<List<SteamGame>> GetSteamLibraryAsync(string apiKey, string steamId)
     {
         string url = $"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={apiKey}&steamid={steamId}&include_appinfo=true&include_played_free_games=true&format=json";
@@ -29,15 +28,20 @@ public class ClientService(HttpClient client) : IClientService
             response.EnsureSuccessStatusCode();
             string jsonString = await response.Content.ReadAsStringAsync();
             var steamData = JsonSerializer.Deserialize<SteamApiResponse>(jsonString);
-            return steamData?.Response?.Games ?? new List<SteamGame>();
+            return steamData?.Response?.Games ?? [];
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching Steam library: {ex.Message}");
-            return new List<SteamGame>();
+            return [];
         }
     }
 
+    /// <summary>
+    /// Checks the compatibility of a game with Proton by sending an HTTP GET request to the ProtonDB API with the game's AppID. The method deserializes the JSON response to extract the compatibility tier of the game and returns it as a string. If the game is not found in the ProtonDB database, the method returns "native/unknown". If an error occurs during the API call, the method returns "error".
+    /// </summary>
+    /// <param name="appId">The AppID of the game to check.</param>
+    /// <returns>Either the compatibility tier or "unknown"</returns>
     public async Task<string> CheckProtonCompatibilityAsync(int appId)
     {
         // ProtonDB template url
@@ -46,15 +50,17 @@ public class ClientService(HttpClient client) : IClientService
         try
         {
             // get request to protondb api
+            Console.WriteLine($"Checking Proton compatibility for AppID: {appId}...");
             var response = await _client.GetAsync(url);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return "native/unknown";
+                return "unknown";
             }
             // if it works, pull the tier and return it as a string
             response.EnsureSuccessStatusCode();
             string jsonString = await response.Content.ReadAsStringAsync();
             var protonData = JsonSerializer.Deserialize<ProtonDbResponse>(jsonString);
+            Console.WriteLine($"Proton compatibility for AppID: {appId} is {protonData?.Tier.ToLower() ?? "unknown"}");
             return protonData?.Tier.ToLower() ?? "unknown";
         }
         catch
