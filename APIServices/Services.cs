@@ -42,7 +42,7 @@ public class ClientService(HttpClient client) : IClientService
     /// </summary>
     /// <param name="appId">The AppID of the game to check.</param>
     /// <returns>Either the compatibility tier or "unknown"</returns>
-    public async Task<string> CheckProtonCompatibilityAsync(int appId)
+    public async Task<string> CheckProtonCompatibilityAsync(int appId, bool debug = false)
     {
         // ProtonDB template url
         string url = $"https://www.protondb.com/api/v1/reports/summaries/{appId}.json";
@@ -50,7 +50,7 @@ public class ClientService(HttpClient client) : IClientService
         try
         {
             // get request to protondb api
-            Console.WriteLine($"Checking Proton compatibility for AppID: {appId}...");
+            if (debug) Console.WriteLine($"Checking Proton compatibility for AppID: {appId}...");
             var response = await _client.GetAsync(url);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -60,7 +60,8 @@ public class ClientService(HttpClient client) : IClientService
             response.EnsureSuccessStatusCode();
             string jsonString = await response.Content.ReadAsStringAsync();
             var protonData = JsonSerializer.Deserialize<ProtonDbResponse>(jsonString);
-            Console.WriteLine($"Proton compatibility for AppID: {appId} is {protonData?.Tier.ToLower() ?? "unknown"}");
+            if (debug) Console.WriteLine($"Proton compatibility for AppID: {appId} is {protonData?.Tier.ToLower() ?? "unknown"}");
+            if (protonData?.Tier == "borked") protonData.Tier = "Incompatible";
             return protonData?.Tier.ToLower() ?? "unknown";
         }
         catch
@@ -74,5 +75,5 @@ public class ClientService(HttpClient client) : IClientService
 public interface IClientService
 {
     Task<List<SteamGame>> GetSteamLibraryAsync(string apiKey, string steamId);
-    Task<string> CheckProtonCompatibilityAsync(int appId);
+    Task<string> CheckProtonCompatibilityAsync(int appId, bool debug = false);
 }

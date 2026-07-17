@@ -1,6 +1,7 @@
 using APIServices;
 using JsonResponseModels;
 
+using GameInfo = (string Name, int AppId);
 namespace ProtonCompatibility.Utilities;
 /// <summary>
 /// Provides utility methods for interacting with the ProtonDB API and filtering Steam games based on their compatibility tier. This class is designed
@@ -41,7 +42,7 @@ public static class Wrappers
             Console.WriteLine($"Error: {ex.Message}");
             return;
         }
-        Task<List<(string Name, int AppId)>> filteredGamesTask = Func.FilterGamesByTier(_clientService, library, filterMode);
+        Task<List<GameInfo>> filteredGamesTask = Func.FilterGamesByTier(_clientService, library, filterMode);
         Console.Write($"Found {library.Count} games. ");
 
         // --- FILTER GAMES BY SELECTED TIER ---
@@ -51,14 +52,14 @@ public static class Wrappers
         DisplayCompatibility(filteredGamesTask.Result, filterMode);
 
     }
+
     /// <summary>
     /// Displays a console menu for selecting a compatibility tier and returns the selected tier as a string.
     /// </summary>
     /// <returns>the selected tier to normalize function inputs</returns>
-
     static string FilterMode()
     {
-        string[] searchType = new string[] { "Incompatible", "Bronze", "Silver", "Gold", "Platinum", "Compatible" };
+        string[] searchType = ["Incompatible", "Bronze", "Silver", "Gold", "Platinum", "Compatible"];
         bool selected = false;
         int selectedOption = 0;
         string prompt = "Select a compatibility tier to search for (⌃ + ⌄ to navigate, Enter to select):";
@@ -106,15 +107,46 @@ public static class Wrappers
         return searchType[selectedOption];
     }
 
+
+    static void ConfirmYN()
+    {
+        bool validInput = false;
+        string prompt = "Would you like to see a list of these games? (y/n)";
+        while (!validInput)
+        {
+            Console.WriteLine(prompt);
+            string selectedKey = Console.ReadKey(true).Key.ToString();
+            if (selectedKey.Equals("y", StringComparison.CurrentCultureIgnoreCase))
+            {
+                validInput = true;
+                foreach (var (gameName, gameId) in Func.UnknownGames)
+                {
+                    Console.WriteLine($" - {gameName} (AppID: {gameId})");
+                    Task.Delay(100); // Add a small delay for better readability
+                }
+            }
+            else if (selectedKey.Equals("n", StringComparison.CurrentCultureIgnoreCase))
+            {
+                validInput = true;
+                Console.WriteLine("Exiting...");
+            }
+            else
+            {
+                prompt = "Invalid input. Please enter 'y' or 'n'.";
+                Task.Delay(1000);
+            }
+        }
+    }
+
     /// <summary>
     /// Displays a list of games filtered by the specified compatibility tier, along with their AppIDs and a total count of games found for that tier.
     /// </summary>
     /// <param name="games">The list of games to display.</param>
-    /// <param name="tier">The compatibility tier to filter by.</param>
-    private static void DisplayCompatibility(List<(string Name, int AppId)> games, string tier)
+    /// <param name="tierFilter">The compatibility tier to filter by.</param>
+    private static void DisplayCompatibility(List<GameInfo> games, string tierFilter)
     {
         Console.WriteLine("\n" + new string('=', 40));
-        Console.WriteLine($"{tier.ToUpper()} GAMES LIST ");
+        Console.WriteLine($"{tierFilter.ToUpper()} GAMES LIST ");
         Console.WriteLine(new string('=', 40));
 
         if (games.Count > 0)
@@ -122,12 +154,18 @@ public static class Wrappers
             for (int i = 1; i <= games.Count; i++)
             {
                 Console.WriteLine($"{i} - {games[i - 1].Name} (AppID: {games[i - 1].AppId})");
+                Task.Delay(100); // Add a small delay for better readability
             }
-            Console.WriteLine($"\nTotal: {games.Count} game(s) of {tier.ToUpper()} tier found.\n");
+            Console.WriteLine($"\nTotal: {games.Count} game(s) of {tierFilter.ToUpper()} tier found.\n");
         }
         else
         {
-            Console.WriteLine($"no games of {tier.ToUpper()} tier found.\n");
+            Console.WriteLine($"no games of {tierFilter.ToUpper()} tier found.\n");
+        }
+        if (Func.UnknownGames.Count > 0)
+        {
+            Console.WriteLine($"Note: {Func.UnknownGames.Count} game(s) could not be checked for compatibility and were excluded from the results.");
+            ConfirmYN();
         }
 
     }
@@ -139,6 +177,8 @@ public static class Wrappers
 /// </summary>
 internal static class Func
 {
+    public static List<GameInfo> UnknownGames { get; } = [];
+
     /// <summary>
     /// Filters a list of Steam games based on their compatibility tier by checking each game's AppID against the ProtonDB API and comparing the returned tier with the specified tier. The method returns a list of tuples containing the name and AppID of each game that matches the specified tier.
     /// </summary>
@@ -146,14 +186,24 @@ internal static class Func
     /// <param name="library">The list of Steam games to filter.</param>
     /// <param name="filterTier">The compatibility tier to filter by.</param>
     /// <returns>A list of tuples containing the name and AppID of each game that matches the specified tier.</returns>
-    public static async Task<List<(string Name, int AppId)>> FilterGamesByTier(IClientService clientService, List<SteamGame> library, string filterTier)
+    public static async Task<List<GameInfo>> FilterGamesByTier(IClientService clientService, List<SteamGame> library, string filterTier)
     {
-        List<(string Name, int AppId)> filteredGames = [];
+        List<GameInfo> filteredGames = [];
         int count = 0;
         foreach (var game in library)
         {
-            string gameTier = await clientService.CheckProtonCompatibilityAsync(game.AppId);
-            if (gameTier.Equals(filterTier, StringComparison.CurrentCultureIgnoreCase))
+            string compatibilityTier = await clientService.CheckProtonCompatibilityAsync(game.AppId);
+            if (new string[] { "error", "unknown", "pending" }.Any(badTier => badTier.Equals(compatibilityTier, StringComparison.CurrentCultureIgnoreCase)))
+            {
+                UnknownGames.Add((game.Name, game.AppId));
+                count++;
+                continue;
+            }
+            if (filterTier.Equals("Compatible", StringComparison.CurrentCultureIgnoreCase) && !compatibilityTier.Equals("Incompatible", StringComparison.CurrentCultureIgnoreCase))
+            {
+                filteredGames.Add((game.Name, game.AppId));
+            }
+            else if (compatibilityTier.Equals(filterTier, StringComparison.CurrentCultureIgnoreCase) || (filterTier.Equals("Incompatible", StringComparison.CurrentCultureIgnoreCase) && "Incompatible" == compatibilityTier))
             {
                 filteredGames.Add((game.Name, game.AppId));
             }
@@ -169,11 +219,12 @@ internal static class Func
         return filteredGames;
 
     }
-/// <summary>
-/// Validates that the provided list of Steam games is not null or empty. If the list is null or empty, the method throws an ArgumentNullException with a descriptive message.
-/// </summary>
-/// <param name="library">The list of Steam games to validate.</param>
-/// <exception cref="ArgumentNullException">Thrown when the library is null or empty.</exception>
+
+    /// <summary>
+    /// Validates that the provided list of Steam games is not null or empty. If the list is null or empty, the method throws an ArgumentNullException with a descriptive message.
+    /// </summary>
+    /// <param name="library">The list of Steam games to validate.</param>
+    /// <exception cref="ArgumentNullException">Thrown when the library is null or empty.</exception>
     public static void ValidateLibrary(List<SteamGame> library)
     {
         if (library == null || library.Count == 0)
@@ -192,7 +243,7 @@ public static class BlazorWrappers
     /// Provides a static instance of the IClientService interface, allowing for interaction with the ProtonDB API and filtering of Steam games based on their compatibility tier.
     /// </summary>
     public static readonly IClientService _clientService = new ClientService(new HttpClient());
-    
+
     /// <summary>
     /// Filters a list of Steam games based on their compatibility tier by checking each game's AppID against the ProtonDB API and comparing the returned tier with the specified tier. The method returns a list of tuples containing the name, AppID, and compatibility tier of each game that matches the specified tier.
     /// </summary>
